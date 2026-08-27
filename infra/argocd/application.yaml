@@ -8,8 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    # CHANGE-ME: point this at the repository that holds these manifests.
-    repoURL: https://github.com/CHANGE-ME/AI-task-platform.git
+    repoURL: https://github.com/Phayvhee/AI-task-app-infra.git
     targetRevision: main
     path: infra/k8s
   destination:
