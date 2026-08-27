@@ -27,3 +27,9 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Local assignment brief
+Mern Stack Developer Intern Assignment.pdf
+
+# Separate infrastructure repository kept beside the application checkout
+AI-task-platform-infra/
