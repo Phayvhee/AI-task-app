@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-task-platform
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    # CHANGE-ME: point this at the repository that holds these manifests.
+    repoURL: https://github.com/CHANGE-ME/AI-task-platform.git
+    targetRevision: main
+    path: infra/k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ai-task-platform
+  syncPolicy:
+    automated:
+      prune: true      # delete resources removed from git
+      selfHeal: true   # revert manual drift back to git state
+    syncOptions:
+      - CreateNamespace=true
+  # The worker's replica count is owned by its HorizontalPodAutoscaler,
+  # so Argo must not treat autoscaled replicas as drift.
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      name: worker
+      jsonPointers:
+        - /spec/replicas

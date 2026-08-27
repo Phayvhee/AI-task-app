@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ai-task-platform
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - mongo.yaml
+  - redis.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - hpa.yaml
+
+# Image tags are updated automatically by CI via:
+#   kustomize edit set image ai-task-platform/<svc>=<registry>/<repo>-<svc>:<tag>
+images:
+  - name: ai-task-platform/backend
+    newTag: latest
+  - name: ai-task-platform/frontend
+    newTag: latest
+  - name: ai-task-platform/worker
+    newTag: latest

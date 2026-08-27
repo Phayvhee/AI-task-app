@@ -1,0 +1,122 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+    # Don't retrigger on the bot's image-tag commit or docs-only changes.
+    paths-ignore:
+      - 'infra/**'
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - 'infra/**'
+      - '**.md'
+
+permissions:
+  contents: write   # needed to push the updated image tag back to the repo
+  packages: write   # needed to push images to GHCR
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  # ---------- Lint ----------
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run lint
+
+      - name: Lint backend
+        working-directory: backend
+        run: |
+          npm ci
+          npm run lint
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Lint worker
+        run: |
+          pip install ruff
+          ruff check worker/
+
+  # ---------- Build & push images ----------
+  build-and-push:
+    needs: lint
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        component: [backend, frontend, worker]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image name (lowercase)
+        id: img
+        run: |
+          owner_repo=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+          echo "name=${REGISTRY}/${owner_repo}-${{ matrix.component }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.component }}
+          push: true
+          tags: |
+            ${{ steps.img.outputs.name }}:latest
+            ${{ steps.img.outputs.name }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ---------- Update image tags in the infra manifests (GitOps) ----------
+  update-manifests:
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+
+      - name: Set image tags
+        working-directory: infra/k8s
+        run: |
+          owner_repo=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+          for c in backend frontend worker; do
+            kustomize edit set image "ai-task-platform/${c}=${REGISTRY}/${owner_repo}-${c}:${GITHUB_SHA}"
+          done
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add infra/k8s/kustomization.yaml
+          if git diff --cached --quiet; then
+            echo "No image changes to commit"
+          else
+            git commit -m "ci: update image tags to ${GITHUB_SHA} [skip ci]"
+            git push
+          fi
