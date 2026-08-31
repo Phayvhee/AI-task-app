@@ -1,13 +1,4 @@
 # Render Blueprint for a fully free deploy of the AI Task Platform.
-#
-#   - backend runs the Express API AND the task worker in one process
-#     (RUN_INLINE_WORKER=true), so no paid background worker is needed.
-#   - Redis is a free Key Value instance (in-memory; data lost on restart —
-#     stranded tasks can be recovered via POST /api/tasks/requeue-pending).
-#   - MongoDB is NOT provided by Render: create a free MongoDB Atlas M0 cluster
-#     and paste its connection string into MONGO_URI in the dashboard.
-#
-# The frontend deploys separately on Vercel (see frontend/vercel.json).
 services:
   - type: web
     name: ai-task-backend
@@ -24,6 +15,8 @@ services:
         value: "true"
       - key: JWT_SECRET
         generateValue: true          # Render generates a strong secret
+      - key: FRONTEND_URL
+        value: https://frontend-ai-task-app.vercel.app
       - key: MONGO_URI
         sync: false                  # set in the dashboard (Atlas SRV string)
       - key: REDIS_URL

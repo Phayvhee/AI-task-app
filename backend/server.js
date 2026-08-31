@@ -14,7 +14,6 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
-// --- Validate required secrets before the app starts ---
 if (!process.env.JWT_SECRET) {
   if (process.env.NODE_ENV === "production") {
     console.error("FATAL: JWT_SECRET is not set. Refusing to start in production.");
@@ -40,12 +39,13 @@ const allowedOrigins = [
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5174",
   "http://localhost:3000",
+  "https://frontend-ai-task-app.vercel.app",
 ].filter(Boolean);
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin) || origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1")) {
+      if (allowedOrigins.includes(origin) || origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1") || origin.includes("vercel.app")) {
         return callback(null, true);
       }
       callback(new Error('CORS policy: Origin not allowed'));
@@ -55,9 +55,6 @@ app.use(
 );
 app.use(express.json());
 
-// Health/readiness endpoints. Registered before the rate limiter so
-// Kubernetes probes are never throttled. Liveness = process is up;
-// readiness = MongoDB connection is established.
 app.get(["/health", "/api/health"], (req, res) => {
   res.status(200).json({ status: "ok" });
 });
@@ -69,8 +66,6 @@ app.get(["/ready", "/api/ready"], (req, res) => {
   });
 });
 
-// Rate limiting: a broad global cap plus a stricter cap on auth endpoints
-// to slow down brute-force attempts.
 const limiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 1000 });
 app.use("/api/", limiter);
 const authLimiter = rateLimit({
@@ -90,8 +85,6 @@ if (!process.env.MONGO_URI) {
   console.warn('MONGO_URI not set. Using default local MongoDB URL:', mongoURI);
 }
 
-// Start serving immediately so probes respond while MongoDB is still
-// connecting. Readiness stays 503 until the DB is available.
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Backend running on port ${PORT}...`));
 
@@ -109,9 +102,6 @@ const connectWithRetry = async () => {
 };
 connectWithRetry();
 
-// Optionally run the task worker in-process. Used for single-service deploys
-// (e.g. a free Render web service) where a separate worker isn't available.
-// In Kubernetes we run the dedicated Python worker, so this stays off there.
 if (process.env.RUN_INLINE_WORKER === "true") {
   import("./worker.js")
     .then(({ startInlineWorker }) => startInlineWorker())
