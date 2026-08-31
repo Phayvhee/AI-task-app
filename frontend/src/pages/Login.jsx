@@ -47,9 +47,6 @@ export default function Login() {
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Secure access</p>
               <h1 className="mt-4 text-3xl font-semibold text-white">Sign in to your dashboard</h1>
-              <p className="mt-3 text-sm text-slate-400 leading-6">
-                Access the task queue and manage processing with a clean, modern workflow.
-              </p>
             </div>
 
             {error && (

@@ -68,9 +68,6 @@ export default function Register() {
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Create account</p>
               <h1 className="mt-4 text-3xl font-semibold text-white">Register for the dashboard</h1>
-              <p className="mt-3 text-sm text-slate-400 leading-6">
-                Set up access quickly and begin managing your task queue with a clean and efficient interface.
-              </p>
             </div>
 
             {error && (

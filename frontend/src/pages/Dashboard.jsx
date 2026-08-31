@@ -56,17 +56,6 @@ const Dashboard = () => {
                 Create jobs, monitor status updates, and keep the queue moving with a polished queue management experience.
               </p>
             </div>
-            <div className="rounded-[24px] bg-slate-900 p-6 text-slate-300 shadow-sm shadow-slate-950/20">
-              <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Overview</p>
-              <div className="mt-5 space-y-3 text-sm leading-7">
-                <p className="text-slate-400">
-                  Tasks refresh every few seconds so you can stay confident in live queue state.
-                </p>
-                <p className="text-slate-400">
-                  Requeue pending jobs instantly and review details in the task feed.
-                </p>
-              </div>
-            </div>
           </div>
 
           <div className="mt-10 grid gap-8 lg:grid-cols-2">
