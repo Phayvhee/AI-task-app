@@ -9,14 +9,14 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 FROM python:3.11-slim AS runtime
 
 WORKDIR /app
-RUN useradd --create-home --shell /bin/bash appuser
+RUN useradd --uid 10001 --create-home --shell /bin/bash appuser
 
 # Bring in the packages installed in the builder stage
 COPY --from=builder /root/.local /home/appuser/.local
 COPY . .
 
 RUN chown -R appuser:appuser /app /home/appuser
-USER appuser
+USER 10001
 ENV PATH=/home/appuser/.local/bin:$PATH
 
 CMD ["python", "worker.py"]
